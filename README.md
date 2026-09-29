@@ -32,17 +32,6 @@ Basta abrir `index.html` no navegador.
 
 Para desenvolvimento, também pode ser utilizado o Live Server do VS Code.
 
-## Publicar no GitHub Pages
-
-1. Crie um repositório no GitHub.
-2. Envie todos os arquivos deste projeto.
-3. Acesse `Settings > Pages`.
-4. Em `Build and deployment`, selecione `Deploy from a branch`.
-5. Escolha a branch principal e a pasta `/root`.
-6. Salve.
-
-O GitHub Pages disponibilizará o dashboard como uma página pública.
-
 ## Estrutura
 
 ```text
@@ -64,7 +53,3 @@ dashboard-ativos-materiais/
 Os dados presentes em `assets/js/mock-data.js` são fictícios e servem apenas para demonstração.
 
 Para conectar o projeto a uma API real, a camada de carregamento de dados em `assets/js/app.js` pode ser substituída sem necessidade de alterar a interface.
-
-## Licença
-
-Defina a licença do projeto conforme a forma como deseja disponibilizar o código.
