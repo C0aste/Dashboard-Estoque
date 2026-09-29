@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboard responsivo para gestão de ativos, materiais, EPI e movimentações de estoque.">
+    <title>Dashboard de Ativos e Estoque</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#03a10e"
+                    },
+                    fontFamily: {
+                        apple: ["-apple-system", "BlinkMacSystemFont", "SF Pro Display", "Segoe UI", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+
+<body class="bg-[#f5f5f7] text-[#1d1d1f] font-apple antialiased">
+
+<div id="loadingPagina" class="fixed inset-0 z-[9999] hidden items-center justify-center bg-white/80 backdrop-blur-sm">
+    <div class="flex flex-col items-center gap-3">
+        <div class="w-8 h-8 border-2 border-gray-200 border-t-primary rounded-full animate-spin"></div>
+        <span class="text-sm text-gray-500">Carregando dados...</span>
+    </div>
+</div>
+
+<div id="modalHistorico" class="fixed inset-0 z-[9999] hidden items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+    <div class="w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+            <div>
+                <h2 id="tituloHistorico" class="text-lg font-semibold text-gray-900">Histórico de movimentações</h2>
+                <p id="subtituloHistorico" class="text-sm text-gray-500 mt-1">-</p>
+            </div>
+            <button type="button" id="fecharHistorico" class="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition" aria-label="Fechar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <div id="conteudoHistorico" class="overflow-auto max-h-[calc(90vh-90px)]"></div>
+    </div>
+</div>
+
+<div id="modalHistoricos" class="fixed inset-0 z-[9999] hidden items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+    <div class="w-full max-w-7xl max-h-[90vh] bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="flex flex-col gap-4 px-6 py-5 border-b border-gray-100">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">Históricos de Movimentação</h2>
+                    <p class="text-sm text-gray-500 mt-1">Consulte as movimentações por período.</p>
+                </div>
+                <button type="button" id="fecharHistoricos" class="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition" aria-label="Fechar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="w-full sm:w-52">
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">Mês</label>
+                    <input type="month" id="mesHistoricos" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:border-primary">
+                </div>
+
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">Buscar</label>
+                    <input id="buscaHistoricos" type="text" placeholder="Buscar depósito, código, item ou movimentação..." class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary transition">
+                </div>
+
+                <div class="flex items-end">
+                    <button id="btnConsultarHistoricos" type="button" class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-4.35-4.35m2.1-5.4a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z"/></svg>
+                        Consultar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="resumoHistoricos" class="px-6 py-3 border-b border-gray-100 text-xs text-gray-400">Carregando...</div>
+        <div id="conteudoHistoricos" class="overflow-auto max-h-[calc(90vh-190px)]"></div>
+    </div>
+</div>
+
+<div class="min-h-screen">
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div class="h-16 sm:h-20 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0v10l-8 4-8-4V7m16 0l-8 4m-8-4l8 4m0 0v10"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h1 class="text-sm sm:text-lg font-semibold truncate">Dashboard de Ativos e Estoque</h1>
+                        <p class="text-[11px] sm:text-xs text-gray-500 truncate">Controle de materiais, ativos e movimentações</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="btnHistoricos" type="button" class="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title="Históricos de movimentação">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="hidden sm:inline text-sm font-medium">Históricos</span>
+                    </button>
+
+                    <button id="btnDashboard" type="button" class="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title="Visualizar dashboard">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-9"/></svg>
+                        <span class="hidden sm:inline text-sm font-medium">Dashboard</span>
+                    </button>
+
+                    <div class="hidden lg:flex items-center gap-2 text-xs text-gray-400">
+                        <span class="w-2 h-2 rounded-full bg-primary"></span>
+                        Dados demonstrativos
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
+        <div class="mb-6 sm:mb-7">
+            <p id="tituloControle" class="text-xs sm:text-sm text-primary font-medium mb-1">CONTROLE DE ESTOQUE</p>
+            <div class="flex flex-col gap-1">
+                <h2 id="tituloDashboard" class="text-2xl sm:text-3xl font-semibold tracking-tight">Materiais</h2>
+                <p id="descricaoDashboard" class="text-sm text-gray-500">Visualização dos materiais disponíveis nos depósitos.</p>
+            </div>
+        </div>
+
+        <section id="resumo" class="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mb-5 sm:mb-6">
+            <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p id="labelGrupo" class="text-xs sm:text-sm text-gray-500">Depósitos</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="totalDepositos" class="text-2xl sm:text-3xl font-semibold">0</span><span class="hidden sm:inline text-xs font-medium text-primary">Locais</span></div>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p id="labelItens" class="text-xs sm:text-sm text-gray-500">Itens</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="totalItens" class="text-2xl sm:text-3xl font-semibold">0</span><span class="hidden sm:inline text-xs font-medium text-primary">Itens</span></div>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p class="text-xs sm:text-sm text-gray-500">Quantidade</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="totalQuantidade" class="text-2xl sm:text-3xl font-semibold">0</span><span class="hidden sm:inline text-xs font-medium text-primary">Unidades</span></div>
+            </div>
+            <div id="cardValorEstoque" class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p id="labelValorEstoque" class="text-xs sm:text-sm text-gray-500">Valor em estoque</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="valorEstoque" class="text-lg sm:text-xl font-semibold truncate">R$ 0,00</span><span class="hidden sm:inline text-xs font-medium text-primary">Total</span></div>
+            </div>
+            <div id="cardValorMateriais" class="hidden bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p class="text-xs sm:text-sm text-gray-500">Valor de Materiais</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="valorMateriais" class="text-lg sm:text-xl font-semibold truncate">R$ 0,00</span><span class="hidden sm:inline text-xs font-medium text-primary">Materiais</span></div>
+            </div>
+            <div id="cardValorAtivos" class="hidden bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p class="text-xs sm:text-sm text-gray-500">Valor de Ativos</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="valorAtivos" class="text-lg sm:text-xl font-semibold truncate">R$ 0,00</span><span class="hidden sm:inline text-xs font-medium text-primary">Ativos</span></div>
+            </div>
+            <div id="cardValorEpi" class="hidden bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p class="text-xs sm:text-sm text-gray-500">Valor de EPI e Uniformes</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="valorEpi" class="text-lg sm:text-xl font-semibold truncate">R$ 0,00</span><span class="hidden sm:inline text-xs font-medium text-primary">EPI</span></div>
+            </div>
+            <div id="cardValorTotal" class="hidden bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 lg:col-span-2">
+                <p class="text-xs sm:text-sm text-gray-500">Valor Total</p>
+                <div class="flex items-end justify-between gap-2 mt-2"><span id="valorTotal" class="text-lg sm:text-xl font-semibold truncate">R$ 0,00</span><span class="hidden sm:inline text-xs font-medium text-primary">Total</span></div>
+            </div>
+        </section>
+
+        <section id="dashboardGraficos" class="hidden space-y-4 sm:space-y-5 mb-6">
+            <div>
+                <p class="text-xs text-primary font-medium uppercase tracking-wide">Análise visual</p>
+                <h3 class="text-xl sm:text-2xl font-semibold tracking-tight">Indicadores</h3>
+                <p id="descricaoGraficos" class="text-sm text-gray-500 mt-1">Visão geral dos ativos e materiais.</p>
+            </div>
+
+            <div id="graficosTodos" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+                    <div class="mb-5"><h4 class="font-semibold text-gray-900">Distribuição por categoria</h4><p class="text-xs text-gray-500 mt-1">Quantidade de itens por tipo.</p></div>
+                    <div class="relative h-[280px] sm:h-[320px]"><canvas id="graficoTipos"></canvas></div>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+                    <div class="mb-5"><h4 class="font-semibold text-gray-900">Valor por categoria</h4><p class="text-xs text-gray-500 mt-1">Distribuição financeira dos registros.</p></div>
+                    <div class="relative h-[280px] sm:h-[320px]"><canvas id="graficoValoresTipos"></canvas></div>
+                </div>
+            </div>
+
+            <div id="graficoRankingContainer" class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+                <div class="mb-5"><h4 id="tituloGraficoRanking" class="font-semibold text-gray-900">Valores por depósito</h4><p class="text-xs text-gray-500 mt-1">Comparativo dos maiores valores registrados.</p></div>
+                <div class="relative h-[320px] sm:h-[380px]"><canvas id="graficoRanking"></canvas></div>
+            </div>
+
+            <div id="graficoQuantidadeContainer" class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+                <div class="mb-5"><h4 id="tituloGraficoQuantidade" class="font-semibold text-gray-900">Quantidade por depósito</h4><p class="text-xs text-gray-500 mt-1">Comparativo da quantidade de itens.</p></div>
+                <div class="relative h-[320px] sm:h-[380px]"><canvas id="graficoQuantidade"></canvas></div>
+            </div>
+        </section>
+
+        <div class="flex items-center gap-2 mb-5 sm:mb-6">
+            <button type="button" class="tipo-filtro flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition" data-tipo="TODOS">Todos</button>
+            <button type="button" class="tipo-filtro flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium bg-primary text-white transition" data-tipo="MATERIAL">Materiais</button>
+            <button type="button" class="tipo-filtro flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition" data-tipo="EPI">EPI e Uniformes</button>
+            <button type="button" class="tipo-filtro flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition" data-tipo="ATIVO">Ativos</button>
+        </div>
+
+        <section id="tabelaDashboard" class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div><h3 id="tituloTabela" class="font-semibold">Materiais em Estoque</h3><p id="descricaoTabela" class="text-xs text-gray-500 mt-1">Materiais disponíveis organizados por depósito.</p></div>
+                    <div class="relative w-full lg:w-72">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-4.35-4.35m2.1-5.4a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z"/></svg>
+                        <input id="buscaItem" type="text" placeholder="Buscar depósito, código ou item..." class="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary transition">
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-h-[600px] overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="hidden sm:table-header-group bg-gray-50 text-xs text-gray-500 sticky top-0 z-10">
+                        <tr>
+                            <th id="labelTabelaGrupo" class="text-left font-medium px-4 sm:px-6 py-4">Depósito</th>
+                            <th class="text-left font-medium px-4 sm:px-6 py-4">Código</th>
+                            <th class="text-left font-medium px-4 sm:px-6 py-4">Descrição</th>
+                            <th class="text-right font-medium px-4 sm:px-6 py-4">Quantidade</th>
+                            <th class="text-right font-medium px-4 sm:px-6 py-4">Preço Médio</th>
+                            <th class="text-right font-medium px-4 sm:px-6 py-4">Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaItens" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+
+            <div class="px-4 sm:px-6 py-4 border-t border-gray-100">
+                <span id="contadorItens" class="text-xs text-gray-400">Carregando...</span>
+            </div>
+        </section>
+
+        <footer class="text-center py-6 sm:py-8">
+            <p class="text-[11px] sm:text-xs text-gray-400">Projeto demonstrativo • Dashboard de Ativos e Estoque</p>
+        </footer>
+    </main>
+</div>
+
+<!-- Bibliotecas -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Projeto -->
+<script src="assets/js/mock-data.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
